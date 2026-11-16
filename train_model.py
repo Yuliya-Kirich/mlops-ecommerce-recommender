@@ -1,47 +1,73 @@
-# Подсказка №1. Попробуйте повторить данный скрипт обучения при помощи ClearML. Используйте optuna для подбора гиперпараметров. 
-# Подсказка №2. Вам необходимо дополнительно создать тестовую выборку для валидации модели.
-# Подсказка №3. Валидацию делаем по PR-AUC (выборка содержит очень мало положительных классов).
-# Подсказка №4. Если ClearML крутиться на ВМ, то может быть неудобно работать с Model Registry. Однако, модель обязательно сохраняем на S3.
-
-import pandas as pd
 import pickle
-
-from catboost import CatBoostClassifier, Pool
 from pathlib import Path
 
+import pandas as pd
+from catboost import CatBoostClassifier
+from sklearn.metrics import average_precision_score
 
-def main():
-    """Самый базовый скрипт для обучения модели.
 
-    Note:
-        Не забываем что лучше использовать ClearML\MLFlow
-    """
-    df = pd.read_parquet(Path("./data_for_training.parquet"))
+FEATURE_COLS = [
+    "views",
+    "purchases",
+    "ctr",
+    "hour",
+    "weekday",
+    "categoryid",
+    "available",
+]
 
-    # Target
-    y = df["target"]
 
-    # Features
-    feature_cols = [
-        "views",
-        "purchases",
-        "ctr",
-        "hour",
-        "weekday",
-        "categoryid",
-        "available",
-    ]
-    X = df[feature_cols].astype(float)
+def main() -> None:
+    print("Loading datasets...")
+
+    train = pd.read_parquet("data/train.parquet")
+    validation = pd.read_parquet("data/validation.parquet")
+
+    x_train = train[FEATURE_COLS].astype("float32")
+    y_train = train["target"].astype(int)
+
+    x_valid = validation[FEATURE_COLS].astype("float32")
+    y_valid = validation["target"].astype(int)
+
+    print(f"Train rows: {len(train):,}")
+    print(f"Validation rows: {len(validation):,}")
 
     model = CatBoostClassifier(
-        depth=4, learning_rate=0.1, loss_function="Logloss", verbose=False
+        iterations=500,
+        depth=4,
+        learning_rate=0.1,
+        loss_function="Logloss",
+        random_seed=42,
+        thread_count=2,
+        verbose=100,
     )
 
-    train_pool = Pool(X, y)
-    model.fit(train_pool)
+    print("\nTraining CatBoost...")
 
-    with open(Path("./ranker.pkl"), "wb") as f:
-        pickle.dump(model, f)
+    model.fit(
+        x_train,
+        y_train,
+        eval_set=(x_valid, y_valid),
+        early_stopping_rounds=50,
+        use_best_model=True,
+    )
+
+    probabilities = model.predict_proba(x_valid)[:, 1]
+
+    pr_auc = average_precision_score(y_valid, probabilities)
+    baseline = float(y_valid.mean())
+
+    print("\n=== VALIDATION RESULTS ===")
+    print(f"PR-AUC (Average Precision): {pr_auc:.6f}")
+    print(f"Random baseline: {baseline:.6f}")
+    print(f"Best iteration: {model.best_iteration_}")
+
+    output = Path("ranker.pkl")
+
+    with output.open("wb") as file:
+        pickle.dump(model, file)
+
+    print(f"\nModel saved: {output}")
 
 
 if __name__ == "__main__":

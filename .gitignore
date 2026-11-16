@@ -37,3 +37,8 @@ secrets.yml
 
 # Local backup files
 *_original.py
+
+# Optuna and local experiment artifacts
+optuna_study.db
+optuna_study.db-*
+artifacts/

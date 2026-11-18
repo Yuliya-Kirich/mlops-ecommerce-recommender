@@ -37,3 +37,6 @@ secrets.yml
 
 # ClickHouse secrets
 infrastructure/clickhouse/.env
+
+/infrastructure/airflow/.env
+/infrastructure/airflow/logs/

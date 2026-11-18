@@ -2,7 +2,10 @@
 name: mlops-airflow
 
 x-airflow-common: &airflow-common
-  image: apache/airflow:3.1.8
+  build:
+    context: .
+    dockerfile: Dockerfile
+  image: mlops-airflow:local
   user: "${AIRFLOW_UID}:0"
   env_file:
     - ../clickhouse/.env
@@ -10,6 +13,7 @@ x-airflow-common: &airflow-common
     - default
     - clickhouse_default
   environment: &airflow-environment
+    CLICKHOUSE_HOST: mlops-clickhouse
     AIRFLOW__CORE__EXECUTOR: LocalExecutor
     AIRFLOW__CORE__LOAD_EXAMPLES: "false"
     AIRFLOW__CORE__PARALLELISM: "2"
@@ -24,6 +28,7 @@ x-airflow-common: &airflow-common
     - ./logs:/opt/airflow/logs
     - ./config:/opt/airflow/config
     - ./plugins:/opt/airflow/plugins
+    - ../../src/etl:/opt/airflow/project_etl:ro
   depends_on:
     postgres:
       condition: service_healthy

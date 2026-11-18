@@ -4,12 +4,26 @@ from pathlib import Path
 import clickhouse_connect
 
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
+
+import os
+from pathlib import Path
+
+import clickhouse_connect
+
+
+ETL_DIR = Path(__file__).resolve().parent
+PROJECT_ROOT = ETL_DIR.parents[1]
+SQL_DIR = ETL_DIR / "sql"
 ENV_FILE = PROJECT_ROOT / "infrastructure/clickhouse/.env"
-SQL_DIR = PROJECT_ROOT / "src/etl/sql"
 
 
 def get_password():
+    # В Airflow пароль приходит из Docker env_file
+    password = os.environ.get("CLICKHOUSE_PASSWORD")
+    if password:
+        return password
+
+    # При запуске на Ubuntu читаем локальный .env
     for line in ENV_FILE.read_text(encoding="utf-8").splitlines():
         if line.startswith("CLICKHOUSE_PASSWORD="):
             return line.split("=", 1)[1].strip()
@@ -18,8 +32,10 @@ def get_password():
 
 
 def get_client():
+    host = os.environ.get("CLICKHOUSE_HOST", "127.0.0.1")
+
     return clickhouse_connect.get_client(
-        host="127.0.0.1",
+        host=host,
         port=8123,
         username="mlops",
         password=get_password(),
@@ -77,30 +93,39 @@ def main():
         "SELECT count() FROM ecommerce.training_dataset"
     )
 
-    if existing != 0:
-        raise RuntimeError(
-            f"training_dataset уже содержит {existing:,} строк. "
-            "Повторная загрузка запрещена."
+
+    if existing == expected:
+        print(
+            f"Обучающая выборка уже готова: {existing:,} строк."
+        )
+        print("Повторная загрузка не требуется.")
+
+    elif existing == 0:
+        print("Обучающая выборка пустая. Начинаем загрузку.")
+
+        populate_sql = SQL_DIR / "06_populate_training_dataset.sql"
+
+        client.command(populate_sql.read_text(encoding="utf-8"))
+
+        actual = client.command(
+            "SELECT count() FROM ecommerce.training_dataset"
         )
 
-    # Заполняем итоговую таблицу
-    populate_sql = SQL_DIR / "06_populate_training_dataset.sql"
+        if actual != expected:
+            raise RuntimeError(
+                f"Ожидалось {expected:,} строк, получено {actual:,}"
+            )
 
-    client.command(populate_sql.read_text(encoding="utf-8"))
+        print(f"Загружено {actual:,} обучающих примеров.")
 
-    # Проверяем количество обучающих примеров
-    actual = client.command(
-        "SELECT count() FROM ecommerce.training_dataset"
-    )
-
-    print(f"Обучающих примеров: {actual:,}")
-
-    if actual != expected:
+    else:
         raise RuntimeError(
-            f"Ожидалось {expected:,} строк, получено {actual:,}"
+            f"Обнаружена неполная или некорректная таблица: "
+            f"{existing:,} строк вместо {expected:,}. "
+            "Автоматическая перезапись запрещена."
         )
 
-    print("Итоговая обучающая выборка готова!")
+    print("ETL завершён успешно!")
 
 
 if __name__ == "__main__":

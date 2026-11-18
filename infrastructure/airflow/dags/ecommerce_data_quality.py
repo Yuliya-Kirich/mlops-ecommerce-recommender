@@ -2,6 +2,7 @@
 import os
 import urllib.parse
 import urllib.request
+import subprocess
 from datetime import datetime
 
 from airflow.sdk import dag, task
@@ -37,6 +38,22 @@ def clickhouse_query(sql: str) -> str:
     tags=["mlops", "ecommerce", "quality"],
 )
 def ecommerce_data_quality():
+
+    @task
+    def build_features():
+        result = subprocess.run(
+            [
+                "python",
+                "/opt/airflow/project_etl/build_features.py",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=1800,
+            check=True,
+        )
+
+        print(result.stdout)
+        print("ETL выполнен успешно!")
 
     @task
     def check_training_dataset():
@@ -83,7 +100,7 @@ def ecommerce_data_quality():
 
         print("Все проверки качества данных пройдены!")
 
-    check_training_dataset()
+    build_features() >> check_training_dataset()
 
 
 ecommerce_data_quality()

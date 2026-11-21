@@ -40,3 +40,15 @@ infrastructure/clickhouse/.env
 
 /infrastructure/airflow/.env
 /infrastructure/airflow/logs/
+
+# Jupyter
+.ipynb_checkpoints/
+Untitled*.ipynb
+infrastructure/airflow-jupyter-checkpoints-backup/
+
+# Optuna local storage
+optuna_study.db
+optuna_study.db-*
+
+# Local ML artifacts
+artifacts/*.pkl

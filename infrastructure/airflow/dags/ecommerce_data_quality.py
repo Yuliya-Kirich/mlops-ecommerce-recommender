@@ -5,7 +5,7 @@ import urllib.request
 import subprocess
 from datetime import datetime
 
-from airflow.sdk import dag, task
+from airflow.sdk import dag, task, get_current_context
 
 
 def clickhouse_query(sql: str) -> str:
@@ -38,6 +38,56 @@ def clickhouse_query(sql: str) -> str:
     tags=["mlops", "ecommerce", "quality"],
 )
 def ecommerce_data_quality():
+
+
+
+    @task
+    def export_to_s3():
+        context = get_current_context()
+        data_date = context["logical_date"].strftime("%Y-%m-%d")
+
+        env = os.environ.copy()
+        env["DATA_DATE"] = data_date
+
+        print(f"Airflow передал DATA_DATE={data_date}", flush=True)
+
+        subprocess.run(
+            [
+                "python",
+                "-u",
+                "/opt/airflow/project_etl/export_to_s3.py",
+            ],
+            timeout=3600,
+            check=True,
+            env=env,
+        )
+
+        print("Экспорт обучающей выборки в S3 завершён!")
+
+
+    @task
+    def validate_s3_export():
+        context = get_current_context()
+        data_date = context["logical_date"].strftime("%Y-%m-%d")
+
+        env = os.environ.copy()
+        env["DATA_DATE"] = data_date
+
+        print(f"Airflow передал DATA_DATE={data_date}", flush=True)
+
+        subprocess.run(
+            [
+                "python",
+                "-u",
+                "/opt/airflow/project_etl/validate_s3_export.py",
+            ],
+            timeout=300,
+            check=True,
+            env=env,
+        )
+
+        print("Валидация экспорта S3 завершена успешно!")
+
 
     @task
     def build_features():
@@ -100,7 +150,13 @@ def ecommerce_data_quality():
 
         print("Все проверки качества данных пройдены!")
 
-    build_features() >> check_training_dataset()
+
+    (
+        build_features()
+        >> check_training_dataset()
+        >> export_to_s3()
+        >> validate_s3_export()
+    )
 
 
 ecommerce_data_quality()

@@ -15,6 +15,10 @@ x-airflow-common: &airflow-common
   environment: &airflow-environment
     CLICKHOUSE_HOST: mlops-clickhouse
     AIRFLOW__CORE__EXECUTOR: LocalExecutor
+    AWS_PROFILE: yandex
+    AWS_DEFAULT_REGION: ru-central1
+    AWS_SHARED_CREDENTIALS_FILE: /home/airflow/.aws/credentials
+    AWS_CONFIG_FILE: /home/airflow/.aws/config
     AIRFLOW__CORE__LOAD_EXAMPLES: "false"
     AIRFLOW__CORE__PARALLELISM: "2"
     AIRFLOW__CORE__MAX_ACTIVE_TASKS_PER_DAG: "2"
@@ -29,6 +33,7 @@ x-airflow-common: &airflow-common
     - ./config:/opt/airflow/config
     - ./plugins:/opt/airflow/plugins
     - ../../src/etl:/opt/airflow/project_etl:ro
+    - /home/iu31101987/.aws:/home/airflow/.aws:ro
   depends_on:
     postgres:
       condition: service_healthy

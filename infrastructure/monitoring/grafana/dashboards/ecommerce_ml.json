@@ -1,7 +1,11 @@
 {
   "uid": "ecommerce-ml-monitoring",
   "title": "Ecommerce ML Monitoring",
-  "tags": ["mlops", "fastapi", "catboost"],
+  "tags": [
+    "mlops",
+    "fastapi",
+    "catboost"
+  ],
   "timezone": "browser",
   "schemaVersion": 41,
   "version": 1,
@@ -15,7 +19,10 @@
       "id": 1,
       "title": "Requests per second",
       "type": "timeseries",
-      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "targets": [
         {
           "expr": "sum(rate(api_requests_total{job=\"ecommerce-fastapi\",endpoint=\"/predict_purchase\"}[5m]))",
@@ -23,14 +30,27 @@
           "refId": "A"
         }
       ],
-      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
-      "fieldConfig": {"defaults": {"unit": "reqps"}, "overrides": []}
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 0
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps"
+        },
+        "overrides": []
+      }
     },
     {
       "id": 2,
       "title": "HTTP errors 4xx / 5xx",
       "type": "timeseries",
-      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "targets": [
         {
           "expr": "sum by (status) (rate(api_requests_total{job=\"ecommerce-fastapi\",status=~\"4..|5..\"}[5m]))",
@@ -38,14 +58,27 @@
           "refId": "A"
         }
       ],
-      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
-      "fieldConfig": {"defaults": {"unit": "reqps"}, "overrides": []}
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 0
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps"
+        },
+        "overrides": []
+      }
     },
     {
       "id": 3,
       "title": "P95 API latency",
       "type": "timeseries",
-      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "targets": [
         {
           "expr": "histogram_quantile(0.95, sum by (le) (rate(api_request_duration_seconds_bucket{job=\"ecommerce-fastapi\",endpoint=\"/predict_purchase\"}[5m])))",
@@ -53,22 +86,86 @@
           "refId": "A"
         }
       ],
-      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
-      "fieldConfig": {"defaults": {"unit": "s"}, "overrides": []}
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        },
+        "overrides": []
+      }
     },
     {
       "id": 4,
       "title": "Total predictions",
       "type": "stat",
-      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "targets": [
         {
           "expr": "sum(api_predictions_total{job=\"ecommerce-fastapi\"})",
           "refId": "A"
         }
       ],
-      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
-      "fieldConfig": {"defaults": {"unit": "short"}, "overrides": []}
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 5,
+      "title": "API Replicas Health",
+      "type": "timeseries",
+      "description": "Availability of each FastAPI replica. 1 = UP, 0 = DOWN.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "expr": "up{job=\"ecommerce-fastapi\"}",
+          "legendFormat": "{{instance}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "min": 0,
+          "max": 1,
+          "decimals": 0,
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 16
+      }
     }
   ]
 }

@@ -1,0 +1,20 @@
+groups:
+  - name: ecommerce-api-availability
+    rules:
+      - alert: FastAPIReplicaDown
+        expr: up{job="ecommerce-fastapi"} == 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "FastAPI replica is unavailable"
+          description: "Replica {{ $labels.instance }} has been down for more than 1 minute."
+
+      - alert: FastAPIAllReplicasDown
+        expr: count(up{job="ecommerce-fastapi"} == 0) == 2
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "All FastAPI replicas are unavailable"
+          description: "Both FastAPI replicas have been down for more than 1 minute."

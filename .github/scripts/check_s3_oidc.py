@@ -53,9 +53,14 @@ def main():
         "https://token.actions.githubusercontent.com"
     )
     assert claims.get("aud") == AUDIENCE
-    assert claims.get("sub") == (
-        "repo:Yuliya-Kirich/mlops-ecommerce-recommender:"
+    expected_subject = (
+        "repo:Yuliya-Kirich@40795656/"
+        "mlops-ecommerce-recommender@1459316444:"
         "ref:refs/heads/feature/production-architecture"
+    )
+
+    assert claims.get("sub") == expected_subject, (
+        "GitHub OIDC subject does not match expected repository and branch"
     )
 
     print("OIDC claims: OK")

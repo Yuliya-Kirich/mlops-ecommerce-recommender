@@ -34,7 +34,7 @@ services:
     ports:
       - "127.0.0.1:19093:9093"
     volumes:
-      - ./alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - /opt/mlops-alertmanager-secrets/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
       - alertmanager-data:/alertmanager
     networks:
       - monitoring

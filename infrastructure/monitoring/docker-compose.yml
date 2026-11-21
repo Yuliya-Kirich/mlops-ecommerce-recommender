@@ -27,7 +27,21 @@ services:
     networks:
       - monitoring
 
+  alertmanager:
+    image: prom/alertmanager:v0.28.1
+    container_name: mlops-alertmanager
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:19093:9093"
+    volumes:
+      - ./alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - alertmanager-data:/alertmanager
+    networks:
+      - monitoring
+
 volumes:
+  alertmanager-data:
+    name: mlops-alertmanager-data
   prometheus-data:
     external: true
     name: mlops-prometheus-data

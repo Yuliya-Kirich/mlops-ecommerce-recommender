@@ -34,3 +34,32 @@ secrets.yml
 
 # OS
 .DS_Store
+
+# ClickHouse secrets
+infrastructure/clickhouse/.env
+
+/infrastructure/airflow/.env
+/infrastructure/airflow/logs/
+
+# Jupyter
+.ipynb_checkpoints/
+Untitled*.ipynb
+infrastructure/airflow-jupyter-checkpoints-backup/
+
+# Optuna local storage
+optuna_study.db
+optuna_study.db-*
+
+# Local ML artifacts
+artifacts/*.pkl
+
+# ClearML pipeline generated artifacts and logs
+/artifacts/pipeline/
+/pipeline_v*.log
+/src/ml/clearml_pipeline*_backup.py
+
+# Monitoring backups
+/backups/
+
+# Generated Locust load test results (stored in Yandex S3)
+/tests/load/results/

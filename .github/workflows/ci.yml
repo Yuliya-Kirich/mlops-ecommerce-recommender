@@ -1,0 +1,161 @@
+name: MLOps CI
+
+on:
+  push:
+    branches:
+      - main
+      - feature/production-architecture
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  ruff:
+    name: Ruff Lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install Ruff
+        run: python -m pip install "ruff==0.17.5"
+
+      - name: Run Ruff lint
+        run: |
+          python -m ruff check \
+            src/monitoring \
+            tests/unit \
+            tests/data_quality \
+            tests/model_quality
+
+      - name: Check Ruff formatting
+        run: |
+          python -m ruff format --check \
+            src/monitoring \
+            tests/unit \
+            tests/data_quality \
+            tests/model_quality
+
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+
+      - name: Run unit tests
+        run: python -m pytest tests/unit -q
+
+  s3-oidc-check:
+    name: S3 OIDC Check
+    runs-on: ubuntu-latest
+
+    if: >-
+      github.event_name == 'push' &&
+      (github.ref == 'refs/heads/main' ||
+       github.ref == 'refs/heads/feature/production-architecture')
+
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Verify Yandex Cloud OIDC and S3 access
+        run: python .github/scripts/check_s3_oidc.py
+
+  data-quality:
+    name: Data Quality
+    runs-on: ubuntu-latest
+
+    if: >-
+      github.event_name == 'push' &&
+      (github.ref == 'refs/heads/main' ||
+       github.ref == 'refs/heads/feature/production-architecture')
+
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install             "pytest>=9,<10"             "pandas>=2.2,<3"             "numpy>=2,<3"             "pyarrow>=22,<23"
+
+      - name: Download datasets from Yandex S3
+        env:
+          ML_CI_DOWNLOAD_DATA: "1"
+        run: python .github/scripts/check_s3_oidc.py
+
+      - name: Run Data Quality tests
+        run: python -m pytest tests/data_quality -q
+
+  model-quality:
+    name: Model Quality
+    runs-on: ubuntu-latest
+
+    if: >-
+      github.event_name == 'push' &&
+      (github.ref == 'refs/heads/main' ||
+       github.ref == 'refs/heads/feature/production-architecture')
+
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install             "pytest>=9,<10"             "pandas>=2.2,<3"             "numpy>=2,<3"             "pyarrow>=22,<23"             "catboost==1.2.10"             "scikit-learn>=1.6,<1.7"
+
+      - name: Download model and datasets from Yandex S3
+        env:
+          ML_CI_DOWNLOAD_DATA: "1"
+          ML_CI_DOWNLOAD_MODEL: "1"
+        run: python .github/scripts/check_s3_oidc.py
+
+      - name: Run Model Quality tests
+        run: python -m pytest tests/model_quality -q

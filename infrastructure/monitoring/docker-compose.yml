@@ -1,0 +1,72 @@
+services:
+  prometheus:
+    image: prom/prometheus:v3.5.0
+    container_name: mlops-prometheus
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:19090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus/alert_rules.yml:/etc/prometheus/alert_rules.yml:ro
+      - prometheus-data:/prometheus
+    networks:
+      - monitoring
+
+  grafana:
+    image: grafana/grafana:12.2.0
+    container_name: mlops-grafana
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:13000:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/etc/grafana/dashboards:ro
+    depends_on:
+      - prometheus
+    networks:
+      - monitoring
+
+  alertmanager:
+    image: prom/alertmanager:v0.28.1
+    container_name: mlops-alertmanager
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:19093:9093"
+    volumes:
+      - /opt/mlops-alertmanager-secrets/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - alertmanager-data:/alertmanager
+    networks:
+      - monitoring
+
+
+  ml-exporter:
+    build:
+      context: ../..
+      dockerfile: infrastructure/monitoring/ml-exporter/Dockerfile
+    container_name: mlops-ml-exporter
+    restart: unless-stopped
+    environment:
+      ML_EXPORTER_HOST: "0.0.0.0"
+      ML_REFRESH_SECONDS: "86400"
+    volumes:
+      - ../../artifacts/pipeline/catboost_best.pkl:/app/artifacts/pipeline/catboost_best.pkl:ro
+      - ../../data/split_v2/validation.parquet:/app/data/split_v2/validation.parquet:ro
+      - ../../data/split_v2/test.parquet:/app/data/split_v2/test.parquet:ro
+    networks:
+      - monitoring
+
+volumes:
+  alertmanager-data:
+    name: mlops-alertmanager-data
+  prometheus-data:
+    external: true
+    name: mlops-prometheus-data
+  grafana-data:
+    external: true
+    name: mlops-grafana-data
+
+networks:
+  monitoring:
+    external: true
+    name: mlops-monitoring

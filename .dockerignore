@@ -1,0 +1,43 @@
+# Git
+.git/
+.gitignore
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Data and trained models
+data/
+artifacts/
+*.parquet
+*.pkl
+*.pickle
+*.joblib
+*.db
+
+# Notebooks
+notebooks/
+*.ipynb
+.ipynb_checkpoints/
+
+# Secrets
+.env
+.env.*
+.aws/
+*credentials*
+*.pem
+*.key
+
+# Infrastructure and logs
+infrastructure/
+logs/
+*.log
+
+# Development files
+tests/
+docs/
+README.md

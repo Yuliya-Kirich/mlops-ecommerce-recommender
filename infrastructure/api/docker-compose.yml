@@ -1,0 +1,51 @@
+services:
+  api-replica1:
+    image: cr.yandex/crp2g9e8cdlnstpbrr5n/ecommerce-purchase-api:1.1
+    container_name: ecommerce-purchase-api-monitoring
+    restart: unless-stopped
+    user: "${API_UID:?Set API_UID}:${API_GID:?Set API_GID}"
+    ports:
+      - "127.0.0.1:8002:8000"
+    environment:
+      AWS_PROFILE: yandex
+      AWS_SHARED_CREDENTIALS_FILE: /run/aws/credentials
+      AWS_CONFIG_FILE: /run/aws/config
+    volumes:
+      - ${API_AWS_DIR:?Set API_AWS_DIR}:/run/aws:ro
+    networks:
+      - monitoring
+
+  api-replica2:
+    image: cr.yandex/crp2g9e8cdlnstpbrr5n/ecommerce-purchase-api:1.1
+    container_name: ecommerce-purchase-api-replica2
+    restart: unless-stopped
+    user: "${API_UID:?Set API_UID}:${API_GID:?Set API_GID}"
+    ports:
+      - "127.0.0.1:8003:8000"
+    environment:
+      AWS_PROFILE: yandex
+      AWS_SHARED_CREDENTIALS_FILE: /run/aws/credentials
+      AWS_CONFIG_FILE: /run/aws/config
+    volumes:
+      - ${API_AWS_DIR:?Set API_AWS_DIR}:/run/aws:ro
+    networks:
+      - monitoring
+
+  nginx:
+    image: nginx:1.28-alpine
+    container_name: ecommerce-nginx
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8004:8080"
+    volumes:
+      - ../nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - api-replica1
+      - api-replica2
+    networks:
+      - monitoring
+
+networks:
+  monitoring:
+    external: true
+    name: mlops-monitoring

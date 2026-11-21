@@ -1,0 +1,30 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - "mlops-alertmanager:9093"
+
+rule_files:
+  - /etc/prometheus/alert_rules.yml
+
+scrape_configs:
+  - job_name: "ecommerce-fastapi"
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - "ecommerce-purchase-api-monitoring:8000"
+          - "ecommerce-purchase-api-replica2:8000"
+
+  - job_name: "ml-monitoring-historical"
+    metrics_path: /metrics
+    scrape_interval: 15s
+    static_configs:
+      - targets:
+          - "mlops-ml-exporter:19101"
+        labels:
+          data_source: "historical"
+          environment: "evaluation"

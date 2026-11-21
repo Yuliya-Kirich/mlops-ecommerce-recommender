@@ -50,14 +50,17 @@ def main():
 
     assert claims.get("iss") == ("https://token.actions.githubusercontent.com")
     assert claims.get("aud") == AUDIENCE
-    expected_subject = (
-        "repo:Yuliya-Kirich@40795656/"
-        "mlops-ecommerce-recommender@1459316444:"
-        "ref:refs/heads/feature/production-architecture"
+    repository_subject = (
+        "repo:Yuliya-Kirich@40795656/mlops-ecommerce-recommender@1459316444:"
     )
 
-    assert claims.get("sub") == expected_subject, (
-        "GitHub OIDC subject does not match expected repository and branch"
+    allowed_subjects = {
+        repository_subject + "ref:refs/heads/main",
+        repository_subject + "ref:refs/heads/feature/production-architecture",
+    }
+
+    assert claims.get("sub") in allowed_subjects, (
+        "GitHub OIDC subject does not match an allowed repository and branch"
     )
 
     print("OIDC claims: OK")

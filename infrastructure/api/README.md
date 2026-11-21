@@ -8,18 +8,19 @@
 - Shared Docker network: mlops-monitoring
 - Model storage: Yandex Object Storage (S3)
 
-Both replicas run `ecommerce-purchase-api:1.1`.
+Both replicas run `cr.yandex/crp2g9e8cdlnstpbrr5n/ecommerce-purchase-api:1.1`.
 Nginx distributes requests using round-robin.
 
 ## Requirements
 
 - Docker and Docker Compose
 - Docker network `mlops-monitoring`
-- Locally available image `ecommerce-purchase-api:1.1`
+- Access to Yandex Container Registry
 - AWS credentials with access to the model in Yandex S3
 
-The Docker image must be built or obtained separately.
-The local image tag is not a published image registry.
+The API image is published in Yandex Container Registry.
+A new VM must authenticate Docker to pull this private image.
+Registry permissions are separate from S3 model access.
 
 ## Deployment
 

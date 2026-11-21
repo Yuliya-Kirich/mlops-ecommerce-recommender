@@ -57,3 +57,6 @@ artifacts/*.pkl
 /artifacts/pipeline/
 /pipeline_v*.log
 /src/ml/clearml_pipeline*_backup.py
+
+# Monitoring backups
+/backups/

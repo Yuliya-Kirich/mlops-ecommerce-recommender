@@ -8,6 +8,8 @@ import pandas as pd
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, ConfigDict, Field
 
+from src.api.monitoring import PREDICTIONS, setup_monitoring
+
 
 BUCKET = "mlops-yk-2026"
 MODEL_PREFIX = "mlops-ecommerce/models"
@@ -89,6 +91,8 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+setup_monitoring(app)
+
 
 @app.get("/health")
 def health():
@@ -112,6 +116,8 @@ def predict_purchase(request: PurchaseRequest):
     ).astype("float32")
 
     probability = float(model.predict_proba(features)[0, 1])
+
+    PREDICTIONS.inc()
 
     return PurchaseResponse(
         purchase_probability=probability,

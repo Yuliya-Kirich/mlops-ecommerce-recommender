@@ -11,6 +11,7 @@ COPY src/api/requirements.txt /app/requirements.txt
 RUN pip install --no-cache-dir -r /app/requirements.txt
 
 COPY src/api/main.py /app/src/api/main.py
+COPY src/api/monitoring.py /app/src/api/monitoring.py
 
 RUN useradd --create-home --uid 10001 appuser \
     && mkdir -p /home/appuser/.aws \

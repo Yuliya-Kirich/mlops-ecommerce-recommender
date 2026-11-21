@@ -1,3 +1,4 @@
+import base64
 import json
 import os
 import urllib.parse
@@ -38,6 +39,26 @@ def main():
 
     print("GitHub OIDC: OK")
 
+    # Diagnostic only: inspect claims without printing the signed token.
+    payload = oidc_token.split(".")[1]
+    payload += "=" * (-len(payload) % 4)
+    claims = json.loads(base64.urlsafe_b64decode(payload))
+
+    print("GitHub OIDC claims:")
+    print("issuer:", claims.get("iss"))
+    print("audience:", claims.get("aud"))
+    print("subject:", claims.get("sub"))
+
+    assert claims.get("iss") == (
+        "https://token.actions.githubusercontent.com"
+    )
+    assert claims.get("aud") == AUDIENCE
+    assert claims.get("sub") == (
+        "repo:Yuliya-Kirich/mlops-ecommerce-recommender:"
+        "ref:refs/heads/feature/production-architecture"
+    )
+
+    print("OIDC claims: OK")
     print("=== Получаем временный IAM token ===")
 
     payload = urllib.parse.urlencode({

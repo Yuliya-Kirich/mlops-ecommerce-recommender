@@ -18,3 +18,30 @@ groups:
         annotations:
           summary: "All FastAPI replicas are unavailable"
           description: "Both FastAPI replicas have been down for more than 1 minute."
+
+      - alert: MLModelDegradation
+        expr: ml_model_degradation_detected{data_source="production",environment="production"} == 1
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "ML model quality degradation detected"
+          description: "Model quality degradation exceeded configured thresholds."
+
+      - alert: MLDataDriftDetected
+        expr: ml_data_drift_detected{data_source="production",environment="production"} == 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "ML data drift detected"
+          description: "Input feature distributions changed beyond configured thresholds."
+
+      - alert: MLMonitoringStale
+        expr: time() - ml_metrics_last_calculation_timestamp_seconds{data_source="production",environment="production"} > 90000
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "ML monitoring results are stale"
+          description: "ML metrics have not been recalculated for more than 25 hours."

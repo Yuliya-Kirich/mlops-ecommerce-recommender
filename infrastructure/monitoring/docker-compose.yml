@@ -39,6 +39,23 @@ services:
     networks:
       - monitoring
 
+
+  ml-exporter:
+    build:
+      context: ../..
+      dockerfile: infrastructure/monitoring/ml-exporter/Dockerfile
+    container_name: mlops-ml-exporter
+    restart: unless-stopped
+    environment:
+      ML_EXPORTER_HOST: "0.0.0.0"
+      ML_REFRESH_SECONDS: "86400"
+    volumes:
+      - ../../artifacts/pipeline/catboost_best.pkl:/app/artifacts/pipeline/catboost_best.pkl:ro
+      - ../../data/split_v2/validation.parquet:/app/data/split_v2/validation.parquet:ro
+      - ../../data/split_v2/test.parquet:/app/data/split_v2/test.parquet:ro
+    networks:
+      - monitoring
+
 volumes:
   alertmanager-data:
     name: mlops-alertmanager-data

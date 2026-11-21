@@ -8,3 +8,4 @@ scrape_configs:
     static_configs:
       - targets:
           - "ecommerce-purchase-api-monitoring:8000"
+          - "ecommerce-purchase-api-replica2:8000"

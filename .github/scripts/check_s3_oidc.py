@@ -3,6 +3,7 @@ import json
 import os
 import urllib.parse
 import urllib.request
+from pathlib import Path
 
 SA_ID = "ajem0r259640ch1i8795"
 AUDIENCE = "https://github.com/Yuliya-Kirich"
@@ -26,9 +27,7 @@ def main():
     request_token = os.environ["ACTIONS_ID_TOKEN_REQUEST_TOKEN"]
 
     separator = "&" if "?" in request_url else "?"
-    url = request_url + separator + urllib.parse.urlencode({
-        "audience": AUDIENCE
-    })
+    url = request_url + separator + urllib.parse.urlencode({"audience": AUDIENCE})
 
     oidc_request = urllib.request.Request(
         url,
@@ -49,9 +48,7 @@ def main():
     print("audience:", claims.get("aud"))
     print("subject:", claims.get("sub"))
 
-    assert claims.get("iss") == (
-        "https://token.actions.githubusercontent.com"
-    )
+    assert claims.get("iss") == ("https://token.actions.githubusercontent.com")
     assert claims.get("aud") == AUDIENCE
     expected_subject = (
         "repo:Yuliya-Kirich@40795656/"
@@ -66,22 +63,20 @@ def main():
     print("OIDC claims: OK")
     print("=== Получаем временный IAM token ===")
 
-    payload = urllib.parse.urlencode({
-        "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
-        "requested_token_type":
-            "urn:ietf:params:oauth:token-type:access_token",
-        "audience": SA_ID,
-        "subject_token": oidc_token,
-        "subject_token_type":
-            "urn:ietf:params:oauth:token-type:id_token",
-    }).encode()
+    payload = urllib.parse.urlencode(
+        {
+            "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
+            "requested_token_type": "urn:ietf:params:oauth:token-type:access_token",
+            "audience": SA_ID,
+            "subject_token": oidc_token,
+            "subject_token_type": "urn:ietf:params:oauth:token-type:id_token",
+        }
+    ).encode()
 
     iam_request = urllib.request.Request(
         "https://auth.yandex.cloud/oauth/token",
         data=payload,
-        headers={
-            "Content-Type": "application/x-www-form-urlencoded"
-        },
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
         method="POST",
     )
 
@@ -100,6 +95,44 @@ def main():
     with urllib.request.urlopen(s3_request, timeout=30) as response:
         print("S3 HTTP:", response.status)
         print("Object size:", response.headers.get("Content-Length"))
+
+    if os.getenv("ML_CI_DOWNLOAD_DATA") == "1":
+        print("=== Downloading CI datasets ===")
+
+        base_url = (
+            "https://storage.yandexcloud.net/"
+            "mlops-yk-2026/mlops-ecommerce/"
+            "ci-artifacts/split_v2"
+        )
+
+        output_dir = Path("data/split_v2")
+        output_dir.mkdir(parents=True, exist_ok=True)
+
+        for name in ("train", "validation", "test"):
+            filename = f"{name}.parquet"
+            destination = output_dir / filename
+
+            request = urllib.request.Request(
+                f"{base_url}/{filename}",
+                headers={"Authorization": f"Bearer {iam_token}"},
+            )
+
+            with (
+                urllib.request.urlopen(request, timeout=120) as response,
+                destination.open("wb") as output,
+            ):
+                while True:
+                    chunk = response.read(1024 * 1024)
+                    if not chunk:
+                        break
+                    output.write(chunk)
+
+            if destination.stat().st_size == 0:
+                raise RuntimeError(f"Empty dataset: {filename}")
+
+            print(f"Downloaded {filename}: {destination.stat().st_size} bytes")
+
+        print("SUCCESS: all 3 datasets downloaded")
 
     print("SUCCESS: GitHub OIDC -> Yandex IAM -> S3")
 

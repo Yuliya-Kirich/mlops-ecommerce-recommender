@@ -134,6 +134,40 @@ def main():
 
         print("SUCCESS: all 3 datasets downloaded")
 
+    if os.getenv("ML_CI_DOWNLOAD_MODEL") == "1":
+        print("=== Downloading CatBoost model ===")
+
+        model_url = (
+            "https://storage.yandexcloud.net/"
+            "mlops-yk-2026/mlops-ecommerce/models/"
+            "185d705e5d4c4c34ac74c05f7544e9e3/"
+            "catboost_best.pkl"
+        )
+
+        destination = Path("artifacts/pipeline/catboost_best.pkl")
+        destination.parent.mkdir(parents=True, exist_ok=True)
+
+        request = urllib.request.Request(
+            model_url,
+            headers={"Authorization": f"Bearer {iam_token}"},
+        )
+
+        with (
+            urllib.request.urlopen(request, timeout=120) as response,
+            destination.open("wb") as output,
+        ):
+            while True:
+                chunk = response.read(1024 * 1024)
+                if not chunk:
+                    break
+                output.write(chunk)
+
+        if destination.stat().st_size == 0:
+            raise RuntimeError("Downloaded model is empty")
+
+        print(f"Model downloaded: {destination.stat().st_size} bytes")
+        print("SUCCESS: CatBoost model downloaded")
+
     print("SUCCESS: GitHub OIDC -> Yandex IAM -> S3")
 
 

@@ -60,3 +60,6 @@ artifacts/*.pkl
 
 # Monitoring backups
 /backups/
+
+# Generated Locust load test results (stored in Yandex S3)
+/tests/load/results/

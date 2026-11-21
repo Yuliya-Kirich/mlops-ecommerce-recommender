@@ -88,7 +88,7 @@ def test_predict_with_mock_model(client, monkeypatch):
         def predict_proba(self, features):
             assert list(features.columns) == api.FEATURES
             assert len(features) == 1
-            return __import__('numpy').array([[0.25, 0.75]])
+            return __import__("numpy").array([[0.25, 0.75]])
 
     monkeypatch.setattr(api, "model", MockModel())
     monkeypatch.setenv("MODEL_VERSION", "test-version")

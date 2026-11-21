@@ -36,9 +36,7 @@ def test_uniqueness(dataset):
 
     duplicate_rate = df.duplicated().mean()
 
-    assert duplicate_rate <= 0.0001, (
-        f"{name}: доля дубликатов {duplicate_rate:.6%}"
-    )
+    assert duplicate_rate <= 0.0001, f"{name}: доля дубликатов {duplicate_rate:.6%}"
 
 
 def test_validity(dataset):
@@ -60,21 +58,17 @@ def test_consistency(dataset):
 
     expected_ctr = df["purchases"] / np.maximum(df["views"], 1)
 
-    assert np.isclose(
-        df["ctr"], expected_ctr, rtol=1e-5, atol=1e-7
-    ).all(), f"{name}: обнаружено несоответствие ctr"
+    assert np.isclose(df["ctr"], expected_ctr, rtol=1e-5, atol=1e-7).all(), (
+        f"{name}: обнаружено несоответствие ctr"
+    )
 
 
 def test_schema_conformance(dataset):
     name, df = dataset
 
-    assert set(df.columns) == set(EXPECTED_DTYPES), (
-        f"{name}: неверный набор колонок"
-    )
+    assert set(df.columns) == set(EXPECTED_DTYPES), f"{name}: неверный набор колонок"
 
     for column, expected_type in EXPECTED_DTYPES.items():
         assert str(df[column].dtype) == expected_type, (
-            f"{name}: {column}, "
-            f"ожидался {expected_type}, "
-            f"получен {df[column].dtype}"
+            f"{name}: {column}, ожидался {expected_type}, получен {df[column].dtype}"
         )

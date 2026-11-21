@@ -1,0 +1,43 @@
+name: MLOps CI
+
+on:
+  push:
+    branches:
+      - main
+      - feature/production-architecture
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest httpx
+
+      - name: Run Ruff lint
+        run: |
+          python -m ruff check src/monitoring tests/unit tests/data_quality tests/model_quality
+
+      - name: Check Ruff formatting
+        run: |
+          python -m ruff format --check src/monitoring tests/unit tests/data_quality tests/model_quality
+
+      - name: Run unit tests
+        run: |
+          python -m pytest tests/unit -q

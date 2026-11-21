@@ -6,7 +6,6 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from src.monitoring.export_metrics import build_prometheus_metrics
 from src.monitoring.ml_metrics import calculate_ml_metrics
 
-
 REFRESH_SECONDS = int(os.getenv("ML_REFRESH_SECONDS", "86400"))
 
 
@@ -47,8 +46,11 @@ def refresh_metrics():
 
             print("ML metrics calculated successfully", flush=True)
 
-        except Exception as exc:
-            print(f"ML metrics calculation failed: {exc}", flush=True)
+        except Exception:  # noqa: BLE001
+            # Keep the HTTP exporter running if a scheduled refresh fails.
+            import traceback
+
+            traceback.print_exc()
 
 
 def main():

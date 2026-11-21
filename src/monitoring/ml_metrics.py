@@ -1,11 +1,9 @@
 import pickle
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
 from scipy.stats import ks_2samp
 from sklearn.metrics import average_precision_score, roc_auc_score
-
 
 FEATURES = [
     "views",
@@ -49,27 +47,22 @@ def calculate_ml_metrics(
 
         probabilities = model.predict_proba(x)[:, 1]
 
-        result[f"{name}_roc_auc"] = float(
-            roc_auc_score(y, probabilities)
-        )
-        result[f"{name}_pr_auc"] = float(
-            average_precision_score(y, probabilities)
-        )
+        result[f"{name}_roc_auc"] = float(roc_auc_score(y, probabilities))
+        result[f"{name}_pr_auc"] = float(average_precision_score(y, probabilities))
 
-    roc_drop = (
-        result["reference_roc_auc"] - result["current_roc_auc"]
-    ) / result["reference_roc_auc"]
+    roc_drop = (result["reference_roc_auc"] - result["current_roc_auc"]) / result[
+        "reference_roc_auc"
+    ]
 
-    pr_drop = (
-        result["reference_pr_auc"] - result["current_pr_auc"]
-    ) / result["reference_pr_auc"]
+    pr_drop = (result["reference_pr_auc"] - result["current_pr_auc"]) / result[
+        "reference_pr_auc"
+    ]
 
     result["roc_auc_drop"] = float(roc_drop)
     result["pr_auc_drop"] = float(pr_drop)
 
     result["model_degradation_detected"] = int(
-        roc_drop > MAX_ROC_AUC_DROP
-        or pr_drop > MAX_PR_AUC_DROP
+        roc_drop > MAX_ROC_AUC_DROP or pr_drop > MAX_PR_AUC_DROP
     )
 
     drifted_features = 0

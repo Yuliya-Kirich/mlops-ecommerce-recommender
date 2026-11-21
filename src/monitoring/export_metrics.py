@@ -50,19 +50,11 @@ def build_prometheus_metrics(metrics):
         registry=registry,
     )
 
-    roc_auc.labels(dataset="reference").set(
-        metrics["reference_roc_auc"]
-    )
-    roc_auc.labels(dataset="current").set(
-        metrics["current_roc_auc"]
-    )
+    roc_auc.labels(dataset="reference").set(metrics["reference_roc_auc"])
+    roc_auc.labels(dataset="current").set(metrics["current_roc_auc"])
 
-    pr_auc.labels(dataset="reference").set(
-        metrics["reference_pr_auc"]
-    )
-    pr_auc.labels(dataset="current").set(
-        metrics["current_pr_auc"]
-    )
+    pr_auc.labels(dataset="reference").set(metrics["reference_pr_auc"])
+    pr_auc.labels(dataset="current").set(metrics["current_pr_auc"])
 
     degradation.set(metrics["model_degradation_detected"])
     drift.set(metrics["data_drift_detected"])

@@ -4,7 +4,6 @@ from pathlib import Path
 import pandas as pd
 from sklearn.metrics import average_precision_score, roc_auc_score
 
-
 FEATURES = [
     "views",
     "purchases",

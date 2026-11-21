@@ -63,3 +63,28 @@ jobs:
 
       - name: Run unit tests
         run: python -m pytest tests/unit -q
+
+  s3-oidc-check:
+    name: S3 OIDC Check
+    runs-on: ubuntu-latest
+
+    if: >-
+      github.event_name == 'push' &&
+      (github.ref == 'refs/heads/main' ||
+       github.ref == 'refs/heads/feature/production-architecture')
+
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Verify Yandex Cloud OIDC and S3 access
+        run: python .github/scripts/check_s3_oidc.py

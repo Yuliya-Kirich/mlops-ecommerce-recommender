@@ -1,0 +1,125 @@
+name: MLOps CD
+
+on:
+  workflow_run:
+    workflows:
+      - MLOps CI
+    types:
+      - completed
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mlops-cd-main
+  cancel-in-progress: false
+
+jobs:
+  publish-image:
+    name: Build and publish Docker image
+    if: >-
+      github.event.workflow_run.conclusion == 'success'
+      && github.event.workflow_run.event == 'push'
+      && github.event.workflow_run.head_branch == 'main'
+      && github.event.workflow_run.head_repository.full_name
+         == github.repository
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout tested commit
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Get Yandex IAM token through OIDC
+        run: python .github/scripts/cd_oidc.py
+
+      - name: Build Docker image
+        env:
+          REGISTRY: cr.yandex/crp2g9e8cdlnstpbrr5n
+          COMMIT_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          set -euo pipefail
+          IMAGE="$REGISTRY/ecommerce-purchase-api:$COMMIT_SHA"
+          docker build --tag "$IMAGE" .
+
+      - name: Authenticate to Yandex Container Registry
+        env:
+          REGISTRY_HOST: cr.yandex
+        run: |
+          set -euo pipefail
+          printf '%s' "$YC_IAM_TOKEN" \
+            | docker login \
+                --username iam \
+                --password-stdin \
+                "$REGISTRY_HOST"
+
+      - name: Push Docker image
+        env:
+          REGISTRY: cr.yandex/crp2g9e8cdlnstpbrr5n
+          COMMIT_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          set -euo pipefail
+          IMAGE="$REGISTRY/ecommerce-purchase-api:$COMMIT_SHA"
+          docker push "$IMAGE"
+
+      - name: Logout from registry
+        if: always()
+        run: docker logout cr.yandex
+
+  deploy-production:
+    name: Deploy to production VM
+
+    # Включим после проверки SSH и CD-сервера.
+    if: ${{ false }}
+
+    needs: publish-image
+    runs-on: ubuntu-latest
+    environment: production
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout tested commit
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Deploy over restricted SSH
+        env:
+          MLOPS_CD_SSH_PRIVATE_KEY: ${{ secrets.MLOPS_CD_SSH_PRIVATE_KEY }}
+          COMMIT_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          set -euo pipefail
+          umask 077
+
+          SSH_DIR="$(mktemp -d)"
+          trap 'rm -rf "$SSH_DIR"' EXIT
+
+          printf '%s\n' "$MLOPS_CD_SSH_PRIVATE_KEY" > "$SSH_DIR/id_ed25519"
+
+          test -s "$SSH_DIR/id_ed25519"
+          test -s infrastructure/cd/known_hosts
+
+          ssh \
+            -i "$SSH_DIR/id_ed25519" \
+            -o IdentitiesOnly=yes \
+            -o StrictHostKeyChecking=yes \
+            -o UserKnownHostsFile="$PWD/infrastructure/cd/known_hosts" \
+            -o GlobalKnownHostsFile=/dev/null \
+            -o BatchMode=yes \
+            -o ConnectTimeout=15 \
+            mlops-cd@153.51.172.53 \
+            "deploy $COMMIT_SHA"

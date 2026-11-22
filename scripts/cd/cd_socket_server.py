@@ -7,12 +7,16 @@ import pwd
 import re
 import socket
 import struct
+import subprocess
+import signal
 import sys
 
 SOCKET_PATH = "/run/mlops-cd/deploy.sock"
 ALLOWED_USER = "mlops-cd"
 MAX_REQUEST_BYTES = 4096
 CLIENT_TIMEOUT_SECONDS = 10
+DEPLOY_SCRIPT = "/opt/mlops-cd/scripts/cd/deploy_release.sh"
+DEPLOY_TIMEOUT_SECONDS = 840
 
 
 def handle_client(conn):
@@ -52,9 +56,96 @@ def handle_client(conn):
     if not isinstance(sha, str) or not re.fullmatch(r"[a-f0-9]{40}", sha):
         return {"status": "error", "message": "invalid commit SHA"}
 
+    # Deployment remains disabled unless explicitly enabled by systemd.
+    if os.environ.get("MLOPS_CD_ENABLED") != "1":
+        return {
+            "status": "disabled",
+            "message": "deployment is not enabled",
+            "commit_sha": sha,
+        }
+
+    process = subprocess.Popen(
+        ["/usr/bin/bash", DEPLOY_SCRIPT, sha],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        start_new_session=True,
+    )
+
+    try:
+        stdout, stderr = process.communicate(
+            timeout=DEPLOY_TIMEOUT_SECONDS
+        )
+    except subprocess.TimeoutExpired:
+        print(
+            "ERROR: deployment timeout; stopping process group",
+            file=sys.stderr,
+            flush=True,
+        )
+
+        os.killpg(process.pid, signal.SIGTERM)
+
+        try:
+            process.communicate(timeout=15)
+        except subprocess.TimeoutExpired:
+            try:
+                os.killpg(process.pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+
+            try:
+                process.communicate(timeout=5)
+            except subprocess.TimeoutExpired:
+                print(
+                    "CRITICAL: output pipes remain open after SIGKILL",
+                    file=sys.stderr,
+                    flush=True,
+                )
+
+                if process.stdout:
+                    process.stdout.close()
+
+                if process.stderr:
+                    process.stderr.close()
+
+                try:
+                    process.wait(timeout=5)
+                except subprocess.TimeoutExpired:
+                    print(
+                        "CRITICAL: deployment leader did not exit",
+                        file=sys.stderr,
+                        flush=True,
+                    )
+
+        return {
+            "status": "error",
+            "message": "deployment timed out; manual verification required",
+            "commit_sha": sha,
+        }
+
+    completed = subprocess.CompletedProcess(
+        process.args,
+        process.returncode,
+        stdout,
+        stderr,
+    )
+
+    # Detailed deployment output is retained in the systemd journal.
+    if completed.stdout:
+        print(completed.stdout, flush=True)
+    if completed.stderr:
+        print(completed.stderr, file=sys.stderr, flush=True)
+
+    if completed.returncode != 0:
+        return {
+            "status": "error",
+            "message": f"deployment failed with exit code {completed.returncode}",
+            "commit_sha": sha,
+        }
+
     return {
-        "status": "disabled",
-        "message": "deployment is not enabled",
+        "status": "success",
+        "message": "deployment completed successfully",
         "commit_sha": sha,
     }
 

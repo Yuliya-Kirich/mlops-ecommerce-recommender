@@ -63,3 +63,17 @@ artifacts/*.pkl
 
 # Generated Locust load test results (stored in Yandex S3)
 /tests/load/results/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Temporary backup files
+*.bak
+*.backup
+
+# Private credentials
+*.pem
+*.key
+id_ed25519*
+id_rsa

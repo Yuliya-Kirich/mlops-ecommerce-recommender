@@ -12,7 +12,7 @@ import sys
 
 text = Path(sys.argv[1]).read_text()
 start = text.index("rollback() {\n")
-end = text.index("\ntrap rollback EXIT", start)
+end = text.index("\n}\n", start) + 2
 
 Path(sys.argv[2]).write_text(text[start:end] + "\n")
 print("SUCCESS: настоящая функция rollback извлечена")
@@ -43,6 +43,11 @@ bash() {
 
 # Имитируем исходные Image ID первой и второй реплики.
 sudo() {
+    if [[ "${1:-}" == "-n" ]]; then
+        echo "UNEXPECTED_COMPLETE_CALL" >> "$TEST_LOG"
+        return 1
+    fi
+
     case "$3" in
         ecommerce-purchase-api-monitoring)
             echo "$OLD_IMAGE1"
@@ -66,6 +71,11 @@ check_health() {
     return 0
 }
 
+stop_active_update() {
+    return 0
+}
+
+export TEST_LOG="$2"
 source "$1"
 
 trap rollback EXIT
@@ -76,7 +86,7 @@ BASH
 
 echo "=== Запускаем сценарий неуспешного отката ==="
 
-if bash "$TEMP_DIR/scenario.sh" "$TEMP_DIR/rollback.sh" \
+if bash "$TEMP_DIR/scenario.sh" "$TEMP_DIR/rollback.sh" "$TEMP_DIR/actions.log" \
     > "$TEMP_DIR/output.log" 2>&1; then
 
     cat "$TEMP_DIR/output.log"
@@ -99,6 +109,14 @@ grep -q \
 grep -q \
     "ERROR: healthcheck failed on port 8003" \
     "$TEMP_DIR/output.log"
+
+if [[ -f "$TEMP_DIR/actions.log" ]] &&
+   grep -q "UNEXPECTED_COMPLETE_CALL" "$TEMP_DIR/actions.log"; then
+    echo "ERROR: complete called after failed rollback"
+    exit 1
+fi
+
+echo "SUCCESS: complete was not called"
 
 echo "SUCCESS: неуспешный rollback корректно обнаружен"
 echo "SUCCESS: deployment завершился с ошибкой"

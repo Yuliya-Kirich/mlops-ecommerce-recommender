@@ -28,7 +28,7 @@ def main():
 
     try:
         with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as client:
-            client.settimeout(10)
+            client.settimeout(900)
             client.connect(SOCKET_PATH)
             client.sendall((json.dumps(request) + "\n").encode("utf-8"))
 

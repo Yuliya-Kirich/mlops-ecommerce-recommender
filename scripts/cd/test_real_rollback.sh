@@ -17,7 +17,7 @@ import sys
 text = Path(sys.argv[1]).read_text()
 
 start = text.index("rollback() {\n")
-end = text.index("\ntrap rollback EXIT", start)
+end = text.index("\n}\n", start) + 2
 
 Path(sys.argv[2]).write_text(text[start:end] + "\n")
 
@@ -28,6 +28,7 @@ cat > "$TEMP_DIR/scenario.sh" <<'BASH'
 #!/usr/bin/env bash
 set -euo pipefail
 
+ROOT_DIR="/tmp/mlops-test-isolated"
 UPDATE_SCRIPT="mock-update"
 OLD_IMAGE1="sha256:old-replica1"
 OLD_IMAGE2="sha256:old-replica2"
@@ -43,6 +44,16 @@ bash() {
 
 # Заглушка вместо docker inspect.
 sudo() {
+    if [[ "${1:-}" == "-n" && "${2:-}" == "python3" ]]; then
+        if [[ "${4:-}" == "complete" &&
+              "${5:-}" == "--result" &&
+              "${6:-}" == "rolled_back" ]]; then
+            echo "COMPLETE rolled_back" >> "$TEST_LOG"
+            return 0
+        fi
+        echo "ERROR: unexpected deployment state command" >&2
+        return 1
+    fi
     case "$3" in
         ecommerce-purchase-api-monitoring)
             echo "$OLD_IMAGE1"
@@ -59,6 +70,10 @@ sudo() {
 # Заглушка вместо HTTP-запросов.
 check_health() {
     printf 'HEALTH %s\n' "$1" >> "$TEST_LOG"
+    return 0
+}
+
+stop_active_update() {
     return 0
 }
 
@@ -92,6 +107,7 @@ UPDATE api-replica1 sha256:old-replica1 deploy
 HEALTH http://127.0.0.1:8002/health
 HEALTH http://127.0.0.1:8003/health
 HEALTH http://127.0.0.1:8004/health
+COMPLETE rolled_back
 EXPECTED
 
 diff -u "$TEMP_DIR/expected.log" "$TEST_LOG"

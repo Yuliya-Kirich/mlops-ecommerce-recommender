@@ -44,7 +44,10 @@ def ecommerce_data_quality():
     @task
     def export_to_s3():
         context = get_current_context()
-        data_date = context["logical_date"].strftime("%Y-%m-%d")
+        run_date = context.get("logical_date")
+        if run_date is None:
+            run_date = context["dag_run"].run_after
+        data_date = run_date.strftime("%Y-%m-%d")
 
         env = os.environ.copy()
         env["DATA_DATE"] = data_date
@@ -68,7 +71,10 @@ def ecommerce_data_quality():
     @task
     def validate_s3_export():
         context = get_current_context()
-        data_date = context["logical_date"].strftime("%Y-%m-%d")
+        run_date = context.get("logical_date")
+        if run_date is None:
+            run_date = context["dag_run"].run_after
+        data_date = run_date.strftime("%Y-%m-%d")
 
         env = os.environ.copy()
         env["DATA_DATE"] = data_date

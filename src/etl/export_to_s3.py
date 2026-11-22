@@ -119,9 +119,25 @@ def main():
 
     print(f"Экспортируем {expected_rows:,} строк в S3")
 
-    with urllib.request.urlopen(request, timeout=1800) as response:
-        s3.upload_fileobj(
-            response,
+    import tempfile
+    import shutil
+
+    with tempfile.TemporaryDirectory(prefix="mlops-export-") as temp_dir:
+        local_file = os.path.join(temp_dir, "training_dataset.parquet")
+
+        print("Скачиваем Parquet из ClickHouse", flush=True)
+
+        with urllib.request.urlopen(request, timeout=1800) as response:
+            with open(local_file, "wb") as output:
+                shutil.copyfileobj(response, output, length=1024 * 1024)
+
+        if os.path.getsize(local_file) == 0:
+            raise RuntimeError("ClickHouse вернул пустой файл")
+
+        print("Загрузка готового Parquet в S3", flush=True)
+
+        s3.upload_file(
+            local_file,
             BUCKET,
             temp_key,
             Config=TransferConfig(

@@ -107,7 +107,10 @@ def main():
 
         env = os.environ.copy()
         env["MLOPS_DATA_DIR"] = str(data_dir)
+        result_path = state_dir / f"{args.data_date}.result.json"
+        env["MLOPS_RESULT_PATH"] = str(result_path)
 
+        result_path.unlink(missing_ok=True)
         print("Запускаем ClearML + Optuna + CatBoost", flush=True)
 
         subprocess.run(
@@ -121,8 +124,50 @@ def main():
             check=True,
         )
 
-        print("SUCCESS: обучение ClearML завершено", flush=True)
-        success_marker.write_text("success\n")
+        import json
+
+        from clearml import Task
+
+        if not result_path.is_file():
+            raise RuntimeError("ClearML не создал файл результатов")
+
+        results = json.loads(result_path.read_text(encoding="utf-8"))
+        run_id = results.get("run_id")
+
+        if not run_id or run_id == "local":
+            raise RuntimeError("Отсутствует корректный ClearML run_id")
+
+        task = Task.get_task(task_id=run_id)
+
+        if task.status != "completed":
+            raise RuntimeError(f"Эксперимент {run_id} имеет статус {task.status}")
+
+        if "training_results" not in task.artifacts:
+            raise RuntimeError("Артефакт training_results отсутствует")
+
+        artifact_results = task.artifacts["training_results"].get()
+
+        if (
+            not isinstance(artifact_results, dict)
+            or artifact_results.get("run_id") != run_id
+        ):
+            raise RuntimeError("Результат ClearML не совпадает с run_id")
+
+        success_marker.write_text(
+            json.dumps(
+                {
+                    "data_date": args.data_date,
+                    "run_id": run_id,
+                    "status": "completed",
+                    "best_pr_auc": artifact_results.get("best_pr_auc"),
+                },
+                ensure_ascii=False,
+            )
+            + "\\n",
+            encoding="utf-8",
+        )
+
+        print(f"SUCCESS: эксперимент ClearML {run_id} подтверждён")
 
 
 if __name__ == "__main__":

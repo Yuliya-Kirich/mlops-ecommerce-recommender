@@ -130,10 +130,26 @@ def training_pipeline(project_root: str, data_dir: str, publish: bool = False):
     else:
         print("TEST MODE: публикация модели в S3 отключена")
 
+    return training_results
+
 
 if __name__ == "__main__":
     PipelineDecorator.run_locally()
-    training_pipeline(
+    import json
+
+    results = training_pipeline(
         project_root=str(PROJECT_ROOT),
         data_dir=str(Path(os.environ["MLOPS_DATA_DIR"]).resolve()),
     )
+
+    if not isinstance(results, dict) or not results.get("run_id"):
+        raise RuntimeError("ClearML не вернул ID эксперимента")
+
+    result_path = os.environ.get("MLOPS_RESULT_PATH")
+    if result_path:
+        Path(result_path).write_text(
+            json.dumps(results, ensure_ascii=False),
+            encoding="utf-8",
+        )
+
+    print(f"SUCCESS: ClearML run_id={results['run_id']}")

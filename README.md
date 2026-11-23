@@ -606,12 +606,10 @@ Apache Airflow экспортирует подготовленную выбор�
 объект `training_ready.json`.
 
 #### Evidence - S3 Versioned Datasets
-![S3 Dataset Versions](docs/screenshots/21_s3_versions.png)
-
+![18_s3_artifacts.png](docs%2Fscreenshots%2F18_s3_artifacts.png)
 
 #### Evidence - S3 Training Artifacts
-![S3 Training Artifacts](docs/screenshots/22_s3_training_artifacts.png)
-
+![20_s3_training_artifacts.png](docs%2Fscreenshots%2F20_s3_training_artifacts.png)
 
 **Результат:** подтверждено хранение подготовленных
 обучающих датасетов в Yandex Object Storage.

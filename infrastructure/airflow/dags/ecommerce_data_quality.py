@@ -95,6 +95,53 @@ def ecommerce_data_quality():
         print("Валидация экспорта S3 завершена успешно!")
 
 
+
+    @task
+    def signal_training_ready():
+        import json
+        import boto3
+
+        context = get_current_context()
+        run_date = context.get("logical_date")
+        if run_date is None:
+            run_date = context["dag_run"].run_after
+
+        data_date = run_date.strftime("%Y-%m-%d")
+        prefix = f"mlops-ecommerce/processed/date={data_date}"
+
+        s3 = boto3.client(
+            "s3",
+            endpoint_url="https://storage.yandexcloud.net",
+            region_name="ru-central1",
+        )
+
+        manifest_key = f"{prefix}/manifest.json"
+        manifest = json.loads(
+            s3.get_object(
+                Bucket="mlops-yk-2026",
+                Key=manifest_key,
+            )["Body"].read()
+        )
+
+        if manifest.get("parquet_key") != f"{prefix}/training_dataset.parquet":
+            raise RuntimeError("Неверная версия датасета")
+
+        signal_key = f"{prefix}/training_ready.json"
+        signal = {
+            "data_date": data_date,
+            "manifest_key": manifest_key,
+            "status": "ready",
+        }
+
+        s3.put_object(
+            Bucket="mlops-yk-2026",
+            Key=signal_key,
+            Body=json.dumps(signal).encode("utf-8"),
+            ContentType="application/json",
+        )
+
+        print(f"SUCCESS: training ready: {signal_key}")
+
     @task
     def build_features():
         result = subprocess.run(
@@ -162,6 +209,7 @@ def ecommerce_data_quality():
         >> check_training_dataset()
         >> export_to_s3()
         >> validate_s3_export()
+        >> signal_training_ready()
     )
 
 

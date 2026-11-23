@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 from clearml import PipelineDecorator
@@ -134,5 +135,5 @@ if __name__ == "__main__":
     PipelineDecorator.run_locally()
     training_pipeline(
         project_root=str(PROJECT_ROOT),
-        data_dir=str(PROJECT_ROOT / "data/split_s3_2026-11-22"),
+        data_dir=str(Path(os.environ["MLOPS_DATA_DIR"]).resolve()),
     )

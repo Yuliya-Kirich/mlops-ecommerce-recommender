@@ -80,3 +80,6 @@ id_rsa
 
 # Generated Docker image artifacts
 /output/
+
+# Local training state
+/artifacts/training_state/

@@ -163,7 +163,7 @@ def main():
                 },
                 ensure_ascii=False,
             )
-            + "\\n",
+            + "\n",
             encoding="utf-8",
         )
 

@@ -10,7 +10,6 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from src.api.monitoring import PREDICTIONS, setup_monitoring
 
-
 BUCKET = "mlops-yk-2026"
 MODEL_PREFIX = "mlops-ecommerce/models"
 DEFAULT_MODEL_VERSION = "185d705e5d4c4c34ac74c05f7544e9e3"
@@ -52,9 +51,7 @@ def load_model_from_s3():
     if os.getenv("AWS_ACCESS_KEY_ID") and os.getenv("AWS_SECRET_ACCESS_KEY"):
         session = boto3.Session()
     else:
-        session = boto3.Session(
-            profile_name=os.getenv("AWS_PROFILE", "yandex")
-        )
+        session = boto3.Session(profile_name=os.getenv("AWS_PROFILE", "yandex"))
 
     s3 = session.client(
         "s3",

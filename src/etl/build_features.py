@@ -1,15 +1,7 @@
-
-from pathlib import Path
-
-import clickhouse_connect
-
-
-
 import os
 from pathlib import Path
 
 import clickhouse_connect
-
 
 ETL_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = ETL_DIR.parents[1]
@@ -60,18 +52,12 @@ def main():
 
     # Проверяем промежуточные таблицы
     for table in tables:
-        count = client.command(
-            f"SELECT count() FROM ecommerce.{table}"
-        )
+        count = client.command(f"SELECT count() FROM ecommerce.{table}")
         print(f"{table}: {count:,} строк")
 
-    expected = client.command(
-        "SELECT count() FROM ecommerce.views_labeled"
-    )
+    expected = client.command("SELECT count() FROM ecommerce.views_labeled")
 
-    actual = client.command(
-        "SELECT count() FROM ecommerce.views_with_history"
-    )
+    actual = client.command("SELECT count() FROM ecommerce.views_with_history")
 
     if actual != expected:
         raise RuntimeError(
@@ -89,15 +75,10 @@ def main():
     print("Таблица ecommerce.training_dataset существует!")
 
     # Проверяем, не были ли данные загружены ранее
-    existing = client.command(
-        "SELECT count() FROM ecommerce.training_dataset"
-    )
-
+    existing = client.command("SELECT count() FROM ecommerce.training_dataset")
 
     if existing == expected:
-        print(
-            f"Обучающая выборка уже готова: {existing:,} строк."
-        )
+        print(f"Обучающая выборка уже готова: {existing:,} строк.")
         print("Повторная загрузка не требуется.")
 
     elif existing == 0:
@@ -107,14 +88,10 @@ def main():
 
         client.command(populate_sql.read_text(encoding="utf-8"))
 
-        actual = client.command(
-            "SELECT count() FROM ecommerce.training_dataset"
-        )
+        actual = client.command("SELECT count() FROM ecommerce.training_dataset")
 
         if actual != expected:
-            raise RuntimeError(
-                f"Ожидалось {expected:,} строк, получено {actual:,}"
-            )
+            raise RuntimeError(f"Ожидалось {expected:,} строк, получено {actual:,}")
 
         print(f"Загружено {actual:,} обучающих примеров.")
 

@@ -33,8 +33,7 @@ def prepare_from_s3(data_date: str, output_dir: str) -> dict:
 
     if output.exists():
         raise FileExistsError(
-            f"Каталог уже существует: {output}. "
-            "Автоматическая перезапись запрещена."
+            f"Каталог уже существует: {output}. Автоматическая перезапись запрещена."
         )
 
     output.parent.mkdir(parents=True, exist_ok=True)
@@ -74,8 +73,7 @@ def prepare_from_s3(data_date: str, output_dir: str) -> dict:
         parts = {
             "train": df[df["event_time"] < TRAIN_END],
             "validation": df[
-                (df["event_time"] >= TRAIN_END)
-                & (df["event_time"] < VALID_END)
+                (df["event_time"] >= TRAIN_END) & (df["event_time"] < VALID_END)
             ],
             "test": df[df["event_time"] >= VALID_END],
         }
@@ -90,9 +88,7 @@ def prepare_from_s3(data_date: str, output_dir: str) -> dict:
                 raise ValueError(f"{name}: выборка пуста")
 
             if set(part["target"].dropna().unique()) != {0, 1}:
-                raise ValueError(
-                    f"{name}: target должен содержать классы 0 и 1"
-                )
+                raise ValueError(f"{name}: target должен содержать классы 0 и 1")
 
             path = workdir / f"{name}.parquet"
             part.to_parquet(path, index=False)
@@ -110,11 +106,10 @@ def prepare_from_s3(data_date: str, output_dir: str) -> dict:
         output.mkdir()
         try:
             for name in parts:
-                (workdir / f"{name}.parquet").replace(
-                    output / f"{name}.parquet"
-                )
+                (workdir / f"{name}.parquet").replace(output / f"{name}.parquet")
         except Exception:
             import shutil
+
             shutil.rmtree(output)
             raise
 

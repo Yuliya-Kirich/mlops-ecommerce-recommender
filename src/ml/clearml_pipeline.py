@@ -2,7 +2,6 @@ from pathlib import Path
 
 from clearml import PipelineDecorator
 
-
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 
@@ -40,6 +39,7 @@ def prepare_data(project_root: str, data_dir: str):
 )
 def train_model(project_root: str, dataset_info: dict, data_dir: str):
     import sys
+
     from clearml import Task
 
     root = Path(project_root)
@@ -81,7 +81,6 @@ def train_model(project_root: str, dataset_info: dict, data_dir: str):
     return results
 
 
-
 @PipelineDecorator.component(
     return_values=["uploaded_files"],
     cache=False,
@@ -89,7 +88,6 @@ def train_model(project_root: str, dataset_info: dict, data_dir: str):
 def publish_model(project_root: str, training_results: dict):
     import sys
     from pathlib import Path
-    from clearml import Task
 
     root = Path(project_root)
     sys.path.insert(0, str(root))

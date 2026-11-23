@@ -5,7 +5,16 @@ version = "0.0.1"
 description = "Add your description here"
 readme = "README.md"
 requires-python = "==3.12.*"
-dependencies = []
+dependencies = [
+    "boto3==1.40.76",
+    "catboost==1.2.10",
+    "clearml==2.2.0",
+    "clickhouse-connect==1.13.0",
+    "optuna==5.0.0",
+    "pandas==2.2.3",
+    "pyarrow==22.0.0",
+    "scikit-learn==1.6.1",
+]
 
 [mypy]
 # что-то сюда добавить может быть?
@@ -14,4 +23,10 @@ dependencies = []
 # какие-то правила проверки тоже сюда может добавить?
 
 [pytest]
+
+[dependency-groups]
+dev = [
+    "pytest==9.0.3",
+    "ruff==0.17.5",
+]
 # какие-то правила для тестов?

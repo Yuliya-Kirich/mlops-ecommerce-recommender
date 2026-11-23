@@ -77,3 +77,6 @@ __pycache__/
 *.key
 id_ed25519*
 id_rsa
+
+# Generated Docker image artifacts
+/output/

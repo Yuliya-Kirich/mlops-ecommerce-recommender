@@ -1,8 +1,7 @@
-
-import os
 import io
 import json
-from datetime import datetime, timezone
+import os
+from datetime import UTC, datetime
 
 import boto3
 import pyarrow.parquet as pq
@@ -13,7 +12,7 @@ ENDPOINT = "https://storage.yandexcloud.net"
 
 
 def main():
-    date = os.environ.get("DATA_DATE") or datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    date = os.environ.get("DATA_DATE") or datetime.now(UTC).strftime("%Y-%m-%d")
     prefix = f"{PREFIX}/date={date}"
 
     parquet_key = f"{prefix}/training_dataset.parquet"
@@ -59,20 +58,17 @@ def main():
     metadata_bytes = s3.get_object(
         Bucket=BUCKET,
         Key=parquet_key,
-        Range=f"bytes={size-footer_size-8}-{size-9}",
+        Range=f"bytes={size - footer_size - 8}-{size - 9}",
     )["Body"].read()
 
-    metadata = pq.read_metadata(
-        io.BytesIO(b"PAR1" + metadata_bytes + footer)
-    )
+    metadata = pq.read_metadata(io.BytesIO(b"PAR1" + metadata_bytes + footer))
 
     expected_rows = int(manifest["rows"])
     actual_rows = metadata.num_rows
 
     if actual_rows != expected_rows:
         raise RuntimeError(
-            f"Количество строк не совпадает: "
-            f"{actual_rows} != {expected_rows}"
+            f"Количество строк не совпадает: {actual_rows} != {expected_rows}"
         )
 
     if int(manifest["size_bytes"]) != size:

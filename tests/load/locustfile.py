@@ -25,9 +25,7 @@ class EcommercePredictionUser(HttpUser):
             timeout=10,
         ) as response:
             if response.status_code != 200:
-                response.failure(
-                    f"HTTP {response.status_code}: {response.text[:200]}"
-                )
+                response.failure(f"HTTP {response.status_code}: {response.text[:200]}")
                 return
 
             try:

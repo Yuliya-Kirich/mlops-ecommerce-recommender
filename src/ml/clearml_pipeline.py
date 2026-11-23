@@ -1,7 +1,7 @@
+import os
 from pathlib import Path
 
 from clearml import PipelineDecorator
-
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
@@ -10,10 +10,10 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
     return_values=["dataset_info"],
     cache=False,
 )
-def prepare_data(project_root: str):
+def prepare_data(project_root: str, data_dir: str):
     import pandas as pd
 
-    folder = Path(project_root) / "data/split_v2"
+    folder = Path(data_dir)
     info = {}
 
     for name in ("train", "validation", "test"):
@@ -38,8 +38,9 @@ def prepare_data(project_root: str):
     return_values=["training_results"],
     cache=False,
 )
-def train_model(project_root: str, dataset_info: dict):
+def train_model(project_root: str, dataset_info: dict, data_dir: str):
     import sys
+
     from clearml import Task
 
     root = Path(project_root)
@@ -54,7 +55,7 @@ def train_model(project_root: str, dataset_info: dict):
     run_id = task.id if task else "local"
 
     results = train_optuna(
-        data_dir=str(root / "data/split_v2"),
+        data_dir=data_dir,
         output_dir=str(root / "artifacts/pipeline" / run_id),
         n_trials=3,
     )
@@ -81,7 +82,6 @@ def train_model(project_root: str, dataset_info: dict):
     return results
 
 
-
 @PipelineDecorator.component(
     return_values=["uploaded_files"],
     cache=False,
@@ -89,7 +89,6 @@ def train_model(project_root: str, dataset_info: dict):
 def publish_model(project_root: str, training_results: dict):
     import sys
     from pathlib import Path
-    from clearml import Task
 
     root = Path(project_root)
     sys.path.insert(0, str(root))
@@ -114,20 +113,43 @@ def publish_model(project_root: str, training_results: dict):
     project="MLOps Ecommerce",
     version="1.2",
 )
-def training_pipeline(project_root: str):
-    dataset_info = prepare_data(project_root=project_root)
+def training_pipeline(project_root: str, data_dir: str, publish: bool = False):
+    dataset_info = prepare_data(project_root=project_root, data_dir=data_dir)
 
     training_results = train_model(
         project_root=project_root,
         dataset_info=dataset_info,
+        data_dir=data_dir,
     )
 
-    publish_model(
-        project_root=project_root,
-        training_results=training_results,
-    )
+    if publish:
+        publish_model(
+            project_root=project_root,
+            training_results=training_results,
+        )
+    else:
+        print("TEST MODE: публикация модели в S3 отключена")
+
+    return training_results
 
 
 if __name__ == "__main__":
     PipelineDecorator.run_locally()
-    training_pipeline(project_root=str(PROJECT_ROOT))
+    import json
+
+    results = training_pipeline(
+        project_root=str(PROJECT_ROOT),
+        data_dir=str(Path(os.environ["MLOPS_DATA_DIR"]).resolve()),
+    )
+
+    if not isinstance(results, dict) or not results.get("run_id"):
+        raise RuntimeError("ClearML не вернул ID эксперимента")
+
+    result_path = os.environ.get("MLOPS_RESULT_PATH")
+    if result_path:
+        Path(result_path).write_text(
+            json.dumps(results, ensure_ascii=False),
+            encoding="utf-8",
+        )
+
+    print(f"SUCCESS: ClearML run_id={results['run_id']}")

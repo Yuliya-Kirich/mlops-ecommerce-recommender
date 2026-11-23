@@ -4,7 +4,6 @@ from pathlib import Path
 
 import boto3
 
-
 BUCKET = "mlops-yk-2026"
 PREFIX = "mlops-ecommerce/models"
 

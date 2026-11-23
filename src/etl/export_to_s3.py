@@ -1,9 +1,8 @@
-
 import json
 import os
-import uuid
 import urllib.request
-from datetime import datetime, timezone
+import uuid
+from datetime import UTC, datetime
 
 import boto3
 import clickhouse_connect
@@ -28,9 +27,7 @@ def get_clickhouse_client():
 def main():
     client = get_clickhouse_client()
 
-    expected_rows = client.command(
-        "SELECT count() FROM ecommerce.training_dataset"
-    )
+    expected_rows = client.command("SELECT count() FROM ecommerce.training_dataset")
 
     if expected_rows == 0:
         raise RuntimeError("Обучающая выборка пуста")
@@ -41,12 +38,11 @@ def main():
         region_name="ru-central1",
     )
 
-    run_date = os.environ.get("DATA_DATE") or datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    run_date = os.environ.get("DATA_DATE") or datetime.now(UTC).strftime("%Y-%m-%d")
 
     target_prefix = f"{PREFIX}/date={run_date}"
     final_key = f"{target_prefix}/training_dataset.parquet"
     manifest_key = f"{target_prefix}/manifest.json"
-
 
     try:
         manifest_object = s3.get_object(
@@ -61,11 +57,8 @@ def main():
         else:
             raise
 
-
     if manifest_object is not None:
-        manifest = json.loads(
-            manifest_object["Body"].read()
-        )
+        manifest = json.loads(manifest_object["Body"].read())
         s3.head_object(Bucket=BUCKET, Key=final_key)
 
         if manifest["rows"] != expected_rows:
@@ -76,7 +69,6 @@ def main():
 
         print(f"Версия уже опубликована: s3://{BUCKET}/{final_key}")
         return
-
 
     try:
         s3.head_object(
@@ -94,10 +86,7 @@ def main():
             "Автоматическая перезапись запрещена."
         )
 
-    temp_key = (
-        f"{target_prefix}/_staging/"
-        f"{uuid.uuid4().hex}.parquet"
-    )
+    temp_key = f"{target_prefix}/_staging/{uuid.uuid4().hex}.parquet"
 
     sql = """
     SELECT *
@@ -119,9 +108,27 @@ def main():
 
     print(f"Экспортируем {expected_rows:,} строк в S3")
 
-    with urllib.request.urlopen(request, timeout=1800) as response:
-        s3.upload_fileobj(
-            response,
+    import shutil
+    import tempfile
+
+    with tempfile.TemporaryDirectory(prefix="mlops-export-") as temp_dir:
+        local_file = os.path.join(temp_dir, "training_dataset.parquet")
+
+        print("Скачиваем Parquet из ClickHouse", flush=True)
+
+        with (
+            urllib.request.urlopen(request, timeout=1800) as response,
+            open(local_file, "wb") as output,
+        ):
+            shutil.copyfileobj(response, output, length=1024 * 1024)
+
+        if os.path.getsize(local_file) == 0:
+            raise RuntimeError("ClickHouse вернул пустой файл")
+
+        print("Загрузка готового Parquet в S3", flush=True)
+
+        s3.upload_file(
+            local_file,
             BUCKET,
             temp_key,
             Config=TransferConfig(
@@ -152,8 +159,8 @@ def main():
     if beginning != b"PAR1" or ending != b"PAR1":
         raise RuntimeError("Некорректная сигнатура Parquet")
 
-
     import io
+
     import pyarrow.parquet as pq
 
     # Читаем последние 8 байт Parquet
@@ -181,9 +188,7 @@ def main():
         Range=f"bytes={size - footer_size - 8}-{size - 9}",
     )["Body"].read()
 
-    metadata_buffer = io.BytesIO(
-        b"PAR1" + metadata_bytes + footer
-    )
+    metadata_buffer = io.BytesIO(b"PAR1" + metadata_bytes + footer)
 
     metadata = pq.read_metadata(metadata_buffer)
     actual_rows = metadata.num_rows
@@ -200,8 +205,6 @@ def main():
 
     print("Проверка количества строк Parquet пройдена!")
 
-
-
     s3.copy_object(
         Bucket=BUCKET,
         Key=final_key,
@@ -212,7 +215,7 @@ def main():
         "source": "ecommerce.training_dataset",
         "rows": expected_rows,
         "size_bytes": size,
-        "exported_at": datetime.now(timezone.utc).isoformat(),
+        "exported_at": datetime.now(UTC).isoformat(),
         "parquet_key": final_key,
     }
 

@@ -1,4 +1,3 @@
-
 import json
 import pickle
 from pathlib import Path
@@ -6,7 +5,6 @@ from pathlib import Path
 import pandas as pd
 from clearml import Task
 from sklearn.metrics import average_precision_score, roc_auc_score
-
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 

@@ -41,9 +41,7 @@ def setup_monitoring(app: FastAPI):
             raise
         finally:
             endpoint = request.scope.get("route")
-            endpoint_name = (
-                endpoint.path if endpoint is not None else "unknown"
-            )
+            endpoint_name = endpoint.path if endpoint is not None else "unknown"
 
             REQUESTS.labels(
                 method=request.method,

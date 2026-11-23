@@ -7,7 +7,6 @@ import pandas as pd
 from catboost import CatBoostClassifier
 from sklearn.metrics import average_precision_score
 
-
 FEATURES = [
     "views",
     "purchases",
@@ -49,12 +48,8 @@ def train_optuna(
 
         params = {
             "depth": trial.suggest_int("depth", 4, 6),
-            "learning_rate": trial.suggest_float(
-                "learning_rate", 0.02, 0.1, log=True
-            ),
-            "l2_leaf_reg": trial.suggest_float(
-                "l2_leaf_reg", 1.0, 5.0
-            ),
+            "learning_rate": trial.suggest_float("learning_rate", 0.02, 0.1, log=True),
+            "l2_leaf_reg": trial.suggest_float("l2_leaf_reg", 1.0, 5.0),
             "iterations": 250,
             "loss_function": "Logloss",
             "verbose": False,
@@ -67,9 +62,7 @@ def train_optuna(
         model.fit(X_train, y_train)
 
         probabilities = model.predict_proba(X_val)[:, 1]
-        score = float(
-            average_precision_score(y_val, probabilities)
-        )
+        score = float(average_precision_score(y_val, probabilities))
 
         trial.set_user_attr("pr_auc", score)
 
@@ -83,8 +76,7 @@ def train_optuna(
                 json.dump(params, f, indent=2)
 
         print(
-            f"Trial {trial.number}: "
-            f"PR-AUC={score:.6f}",
+            f"Trial {trial.number}: PR-AUC={score:.6f}",
             flush=True,
         )
 

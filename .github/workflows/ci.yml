@@ -63,8 +63,9 @@ jobs:
       - name: Install dependencies
         run: uv sync --frozen --group dev
 
-      - name: Install mypy
-        run: uv pip install --python .venv/bin/python "mypy==1.17.1"
+      - name: Install mypy and API dependencies
+        run: |
+          uv pip install --python .venv/bin/python             "mypy==1.17.1"             fastapi             pydantic             prometheus-client
 
       - name: Run mypy
         run: |

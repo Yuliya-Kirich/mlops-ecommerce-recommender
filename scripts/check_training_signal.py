@@ -66,16 +66,20 @@ def main():
 
         print(f"SUCCESS: найден сигнал для {data_date}", flush=True)
 
-        subprocess.run(
-            [
-                sys.executable,
-                str(ROOT / "scripts/run_training.py"),
-                "--data-date",
-                data_date,
-            ],
-            cwd=ROOT,
-            check=True,
-        )
+        command = [
+            sys.executable,
+            str(ROOT / "scripts/run_training.py"),
+            "--data-date",
+            data_date,
+        ]
+
+        if os.getenv("MLOPS_TRAINING_ENABLED", "false").lower() == "true":
+            command.append("--execute")
+            print(f"TRAINING ENABLED: {data_date}", flush=True)
+        else:
+            print(f"DRY RUN: {data_date}", flush=True)
+
+        subprocess.run(command, cwd=ROOT, check=True)
 
 
 if __name__ == "__main__":

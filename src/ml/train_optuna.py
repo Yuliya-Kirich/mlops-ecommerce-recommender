@@ -23,12 +23,12 @@ def train_optuna(
     output_dir: str,
     n_trials: int = 3,
 ):
-    data_dir = Path(data_dir)
-    output_dir = Path(output_dir)
-    output_dir.mkdir(parents=True, exist_ok=True)
+    data_path = Path(data_dir)
+    output_path = Path(output_dir)
+    output_path.mkdir(parents=True, exist_ok=True)
 
-    train_df = pd.read_parquet(data_dir / "train.parquet")
-    val_df = pd.read_parquet(data_dir / "validation.parquet")
+    train_df = pd.read_parquet(data_path / "train.parquet")
+    val_df = pd.read_parquet(data_path / "validation.parquet")
 
     X_train = train_df[FEATURES].astype("float32")
     y_train = train_df["target"].astype("int8")
@@ -38,8 +38,8 @@ def train_optuna(
 
     del train_df, val_df
 
-    best_model_path = output_dir / "catboost_best.pkl"
-    best_params_path = output_dir / "best_params.json"
+    best_model_path = output_path / "catboost_best.pkl"
+    best_params_path = output_path / "best_params.json"
 
     best_score = float("-inf")
 
@@ -97,7 +97,7 @@ def train_optuna(
         "model_path": str(best_model_path),
     }
 
-    with open(output_dir / "training_results.json", "w") as f:
+    with open(output_path / "training_results.json", "w") as f:
         json.dump(results, f, indent=2)
 
     print("Лучший PR-AUC:", results["best_pr_auc"])

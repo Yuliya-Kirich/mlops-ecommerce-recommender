@@ -51,7 +51,7 @@ def train_model(project_root: str, dataset_info: dict, data_dir: str):
     print("Train:", dataset_info["train"]["rows"])
     print("Validation:", dataset_info["validation"]["rows"])
 
-    task = Task.current_task()
+    task: Task | None = Task.current_task()
     run_id = task.id if task else "local"
 
     results = train_optuna(

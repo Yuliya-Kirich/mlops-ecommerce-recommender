@@ -12,7 +12,7 @@ def upload_model(
     output_dir: str,
     run_id: str | None = None,
 ):
-    output_dir = Path(output_dir)
+    output_path = Path(output_dir)
 
     files = [
         "catboost_best.pkl",
@@ -21,8 +21,8 @@ def upload_model(
     ]
 
     for filename in files:
-        if not (output_dir / filename).is_file():
-            raise FileNotFoundError(output_dir / filename)
+        if not (output_path / filename).is_file():
+            raise FileNotFoundError(output_path / filename)
 
     if run_id is None:
         run_id = uuid.uuid4().hex
@@ -41,7 +41,7 @@ def upload_model(
         key = f"{PREFIX}/{run_id}/{filename}"
 
         s3.upload_file(
-            str(output_dir / filename),
+            str(output_path / filename),
             BUCKET,
             key,
         )
